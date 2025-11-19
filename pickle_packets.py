@@ -54,7 +54,7 @@ def read_pkts(capture_path: str, decoding_offset: int, protocol: ProtocolType):
 
 
 if __name__ == "__main__":
-    for root, dirs, files in os.walk("captures_new/cypress-bt/benign"):
+    for root, dirs, files in os.walk("captures/cypress-bt/benign"):
         for file in files:
             if not file.endswith(".pcapng"):
                 continue

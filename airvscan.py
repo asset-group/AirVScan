@@ -54,7 +54,7 @@ class RunHelper:
         self.num_thread = num_thread
         self.exp_id = exp_id
 
-        self.captures_folder = f"captures_new/{device}-{protocol}/{case_type}/{n_field}"
+        self.captures_folder = f"captures/{device}-{protocol}/{case_type}/{n_field}"
 
         self.db = sqlite3.connect(db_path, check_same_thread=False)
         self.read_cursor = self.db.cursor()
@@ -202,40 +202,5 @@ if __name__ == "__main__":
 
     # fmt: off
     # cypress-bt
-    # run_helper = RunHelper(db_path, "cypress", "bt", "mut", "1-field", models, num_trial=num_trial, num_thread=num_thread, exp_id=exp_id)
-    # run_helper.run()
-    # run_helper = RunHelper(db_path, "cypress", "bt", "mut", "2-field", models, num_trial=num_trial, num_thread=num_thread, exp_id=exp_id)
-    # run_helper.run()
-    # run_helper = RunHelper(db_path, "cypress", "bt", "benign", "", models, num_trial=num_trial, num_thread=num_thread, exp_id=exp_id)
-    # run_helper.run()
-
-    # esp32-bt
-    # run_helper = RunHelper(db_path, "esp32", "bt", "mut", "1-field", models, num_trial=num_trial, num_thread=num_thread, exp_id=exp_id)
-    # run_helper.run()
-    # run_helper = RunHelper(db_path, "esp32", "bt", "dup", "", models, num_trial=num_trial, num_thread=num_thread, exp_id=exp_id)
-    # run_helper.run()
-    # run_helper = RunHelper(db_path, "esp32", "bt", "benign", "", models, num_trial=num_trial, num_thread=num_thread, exp_id=exp_id)
-    # run_helper.run()
-
-    # oneplus-fiveg
-    # run_helper = RunHelper(db_path, "oneplus", "fiveg", "dup", "", models, num_trial=num_trial, num_thread=num_thread, exp_id=exp_id)
-    # run_helper.run()
-    # run_helper = RunHelper(db_path, "oneplus", "fiveg", "mut", "1-field", models, num_trial=num_trial, num_thread=num_thread, exp_id=exp_id)
-    # run_helper.run()
-    # run_helper = RunHelper(db_path, "oneplus", "fiveg", "mut", "2-field", models, num_trial=num_trial, num_thread=num_thread, exp_id=exp_id)
-    # run_helper.run()
-    run_helper = RunHelper(db_path, "oneplus", "fiveg", "mut", "3-field", models, num_trial=num_trial, num_thread=num_thread, exp_id=exp_id)
+    run_helper = RunHelper(db_path, "cypress", "bt", "mut", "1-field", models, num_trial=num_trial, num_thread=num_thread, exp_id=exp_id)
     run_helper.run()
-    run_helper = RunHelper(db_path, "oneplus", "fiveg", "benign", "", models, num_trial=num_trial, num_thread=num_thread, exp_id=exp_id)
-    run_helper.run()
-
-    # mock-modbus
-    run_helper = RunHelper(db_path, "mock", "modbus", "mut", "1-field", models, num_trial=num_trial, num_thread=num_thread, exp_id=exp_id)
-    run_helper.run()
-    run_helper = RunHelper(db_path, "mock", "modbus", "reorder", "", models, num_trial=num_trial, num_thread=num_thread, exp_id=exp_id)
-    run_helper.run()
-    run_helper = RunHelper(db_path, "mock", "modbus", "reorder-noword", "", models, num_trial=num_trial, num_thread=num_thread, exp_id=exp_id)
-    run_helper.run()
-    run_helper = RunHelper(db_path, "mock", "modbus", "benign", "", models, num_trial=num_trial, num_thread=num_thread, exp_id=exp_id)
-    run_helper.run()
-    # fmt: on

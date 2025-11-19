@@ -1034,7 +1034,7 @@ def discover_crashes_wdissector(
         elif b"Iteration" in pkt.packet_data:
             current_iteration += 1
 
-        # Store all packets, for llmbugcatcher
+        # Store all packets
         if (not is_packet_logger(pkt.packet_data[decoding_offset:])) and pkt_summary[
             "Protocol"
         ] != "PKTLOG":
@@ -1296,7 +1296,7 @@ if __name__ == "__main__":
     # print(is_same_crash(crash1, crash2, 2000))
 
     for (eh_pkt,) in packet_dissection_reader(
-        "captures_new/esp32-bt/dup/t1/capture_bluetooth_no_original.pcapng",
+        "captures/esp32-bt/dup/t1/capture_bluetooth_no_original.pcapng",
         include_info=False,
         include_detailed_dissection=False,
         include_raw=True,

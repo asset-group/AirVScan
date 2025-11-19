@@ -1,0 +1,11 @@
+pymilvus
+openai
+langchain
+langchain-openai
+langchain-anthropic
+langchain-google-genai
+tiktoken
+nest-asyncio
+pydantic
+pyshark
+python-pcapng

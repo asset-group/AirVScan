@@ -545,7 +545,7 @@ class ModbusPacketGen:
 if __name__ == "__main__":
     modbus_gen = ModbusPacketGen()
 
-    for root, dirs, files in os.walk("captures_new/mock-modbus/reorder"):
+    for root, dirs, files in os.walk("captures/mock-modbus/reorder"):
         for d in dirs:
             packets_json_path = os.path.join(root, d, "packets.json")
             with open(packets_json_path, "w") as f:

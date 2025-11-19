@@ -26,7 +26,7 @@ def replace_obfuscated_words(s: str):
 
 
 def gen(prompt_type: PromptType):
-    for root, dirs, files in os.walk("captures_new/mock-modbus/reorder-noword"):
+    for root, dirs, files in os.walk("captures/mock-modbus/reorder-noword"):
         for file in files:
             if not file.endswith("packets.json"):
                 continue

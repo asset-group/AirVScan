@@ -1,11 +1,11 @@
-from functools import lru_cache
 import re
-from asyncio import as_completed
 from concurrent.futures import ThreadPoolExecutor
+from functools import lru_cache
 from traceback import print_exc
 from typing import Literal, Optional, TypedDict, TypeVar
 
 import tiktoken
+from constants import GOOGLE_KEY, OPENAI_KEY, OPENAI_URL
 from langchain_core.language_models import BaseChatModel
 from langchain_core.output_parsers import JsonOutputParser
 from langchain_core.prompts import PromptTemplate
@@ -13,17 +13,6 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_openai import ChatOpenAI
 from pydantic import BaseModel, Field
 
-from constants import (
-    GOOGLE_KEY,
-    OPENAI_KEY,
-    OPENAI_KEY_HOLDAI,
-    OPENAI_URL,
-    OPENAI_URL_HOLDAI,
-    OPENAI_KEY_HOLDAI_default,
-    OPENAI_KEY_HOLDAI_ssvip,
-    kksj_guan,
-    kksj_key,
-)
 from utils import ae_logger
 
 LLMModel = Literal[
@@ -67,8 +56,8 @@ def get_llm(model: LLMModel, *, max_output_tokens=512, temperature: float = 0.0)
             model=model,
             temperature=temperature,
             max_tokens=max_output_tokens,  # type: ignore
-            base_url=OPENAI_URL_HOLDAI,
-            api_key=OPENAI_KEY_HOLDAI_ssvip,
+            base_url=OPENAI_URL,
+            api_key=OPENAI_KEY,
             # top_p=0.1,
         )
     if model.startswith("gemini-2.5-pro"):
@@ -77,8 +66,8 @@ def get_llm(model: LLMModel, *, max_output_tokens=512, temperature: float = 0.0)
             model=model,
             temperature=temperature,
             max_tokens=max_output_tokens,  # type: ignore
-            base_url=OPENAI_URL_HOLDAI,
-            api_key=OPENAI_KEY_HOLDAI_default,
+            base_url=OPENAI_URL,
+            api_key=OPENAI_KEY,
             top_p=0.1,
         )
     if model == "grok-4":
@@ -87,8 +76,8 @@ def get_llm(model: LLMModel, *, max_output_tokens=512, temperature: float = 0.0)
             model=model,
             temperature=temperature,
             max_tokens=max_output_tokens,  # type: ignore
-            base_url=OPENAI_URL_HOLDAI,
-            api_key=OPENAI_KEY_HOLDAI_default,
+            base_url=OPENAI_URL,
+            api_key=OPENAI_KEY,
             top_p=0.1,
         )
 
@@ -128,7 +117,7 @@ def get_llm(model: LLMModel, *, max_output_tokens=512, temperature: float = 0.0)
             temperature=temperature,
             max_tokens=max_output_tokens,  # type: ignore
             base_url=OPENAI_URL,
-            api_key=kksj_key,
+            api_key=OPENAI_KEY,
             top_p=0.1,
             # client_options={"api_endpoint": OPENAI_URL},
         )
@@ -139,7 +128,7 @@ def get_llm(model: LLMModel, *, max_output_tokens=512, temperature: float = 0.0)
             temperature=temperature,
             max_tokens=max_output_tokens,  # type: ignore
             base_url=OPENAI_URL,
-            api_key=kksj_guan,
+            api_key=OPENAI_KEY,
             top_p=0.1,
             # client_options={"api_endpoint": OPENAI_URL},
         )
@@ -320,19 +309,6 @@ def structured_query(
             ae_logger.error(e)
 
     raise error
-
-    # client = genai.Client(api_key=GOOGLE_KEY.get_secret_value())
-    # response = client.models.generate_content(
-    #     model="gemini-2.5-pro-exp-03-25",
-    #     contents=query,
-    #     config={
-    #         "response_mime_type": "application/json",
-    #         "response_schema": data_schema,
-    #         "max_output_tokens": max_output_token,
-    #         "temperature": temperature,
-    #     },
-    # )
-    # return response.parsed
 
 
 # generate test case

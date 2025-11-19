@@ -23,7 +23,7 @@ def get_obfuscated_key():
     return name
 
 
-for root, dirs, files in os.walk("captures_new/mock-modbus"):
+for root, dirs, files in os.walk("captures/mock-modbus"):
     for file in files:
         if not file.endswith("packets.json"):
             continue
