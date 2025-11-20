@@ -100,10 +100,13 @@ For packet dissection, WDissector[^1] environment is needed and related setup do
 To run our evaluation, please follow the steps:
 1. Install Python dependencies via `pip install -r requirements.txt`
 2. Copy `constants.example.py` to `constants.py` and fill the necessary fields such as LLM urls and keys
+3. Preparation of test cases: extract `captures.7z` to `captures/` folder.
+4. (Optional) Preparation of document database: extract `documents.7z` to `documents/` folder. Then run `rag_init.py` and `rag_import.py` to import documents to Milvus[^3] database. This is optional because we have already prepared prompts with contexts. 
 3. Run `python init_db.py` if you run for the first time
-5. Change running parameters in `airvscan.py` to match your needs. For example: `RunHelper(db_path, "cypress", "bt", "mut", "1-field", models, num_trial=num_trial, num_thread=num_thread, exp_id=exp_id)` means that running cypress (Bluetooth) mut-1-field test cases. 
-4. Launch AirVScan by `python airvscan.py`
+4. Change running parameters in `airvscan.py` to match your needs. For example: `RunHelper(db_path, "cypress", "bt", "mut", "1-field", models, num_trial=num_trial, num_thread=num_thread, exp_id=exp_id)` means that running cypress (Bluetooth) mut-1-field test cases. 
+5. Launch AirVScan by `python airvscan.py`. The results will be stored in `llm_res_final.sqlite3`. 
 
 
 [^1]: https://asset-group.github.io/disclosures/5ghoul/
 [^2]: https://asset-group.github.io/disclosures/braktooth/
+[^3]: https://github.com/milvus-io/pymilvus
