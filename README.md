@@ -21,7 +21,7 @@ The structure inside `captures.7z` looks like:
 │       │           ├───check_attack
 │       │           │   ├───noise
 │       │           │   └───normal
-│       │           └───root_cause
+│       │           └───find_attack_vector
 │       │               ├───noise
 │       │               └───normal
 │       └───2-field
@@ -54,7 +54,7 @@ The structure of `prompts` folder is as follows:
 |       ├───diff.txt
 |       ├───full+context.txt
 |       └───diff+context.txt
-└───root_cause
+└───find_attack_vector
 │   ├───noise
 |   |   ├───full.txt
 |   |   ├───diff.txt
@@ -66,7 +66,8 @@ The structure of `prompts` folder is as follows:
 |       ├───full+context.txt
 |       └───diff+context.txt
 ```
-The check attack and root cause prompts are stored in respective folders.
+
+The check attack and find attack vector prompts are stored in respective folders.
 The prompts containing normal and noisy sequences are also in different folders. 
 The four variant of prompts: full (no differential technique), diff (differential technique), 
 full+context (no differential technique, with context), diff+context (differential technique. with context) 
