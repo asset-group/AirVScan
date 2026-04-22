@@ -2,7 +2,7 @@
 
 This repository contains execution code, test cases and specification documents used during AirVScan evaluation. 
 
-![](images/experiment_process.svg)
+![](images/experiment_process.png)
 *Workflow of AirVScan*
 
 
