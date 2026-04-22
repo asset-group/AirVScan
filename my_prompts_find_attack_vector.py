@@ -1,4 +1,4 @@
-root_cause_prompt_bt = """\
+find_attack_vector_prompt_bt = """\
 You now are an expert in Bluetooth field. I want to have your help to do some packet analysis.
 
 A Bluetooth packet sequence will be provided below for your analysis enclosed by `<packet_sequence></packet_sequence>`.
@@ -58,7 +58,7 @@ OUTPUT_FORMAT
 I need your help to respond in a structured and well-formatted way. Thank you!
 """  # noqa: E501
 
-root_cause_prompt_fiveg = """\
+find_attack_vector_prompt_fiveg = """\
 You are now an expert in 5G field. I want to have your help to do some packet analysis.
 
 A 5G packet sequence will be provided below for your analysis enclosed by `<packet_sequence></packet_sequence>`.
@@ -118,7 +118,7 @@ I need your help to respond in a structured and well-formatted way. Thank you!
 """  # noqa: E501
 
 
-root_cause_prompt_modbus = """\
+find_attack_vector_prompt_modbus = """\
 You are now an expert in Giraffe field. Giraffe is a communication protocol. I want to have your help to do some packet analysis.
 
 A Giraffe packet sequence will be provided below for your analysis enclosed by `<packet_sequence></packet_sequence>`.

@@ -8,10 +8,10 @@ from my_prompts_check_attack import (
     check_attack_prompt_fiveg,
     check_attack_prompt_modbus,
 )
-from my_prompts_root_cause import (
-    root_cause_prompt_bt,
-    root_cause_prompt_fiveg,
-    root_cause_prompt_modbus,
+from my_prompts_find_attack_vector import (
+    find_attack_vector_prompt_bt,
+    find_attack_vector_prompt_fiveg,
+    find_attack_vector_prompt_modbus,
 )
 from rag_utils import DocSearch
 from utils import Pkt, extract_keys
@@ -285,11 +285,11 @@ def get_guidance_prompt(
     # Get prompt template
     if prompt_type == "root_cause":
         if protocol == "bt":
-            prompt_template = root_cause_prompt_bt
+            prompt_template = find_attack_vector_prompt_bt
         elif protocol == "fiveg":
-            prompt_template = root_cause_prompt_fiveg
+            prompt_template = find_attack_vector_prompt_fiveg
         elif protocol == "modbus":
-            prompt_template = root_cause_prompt_modbus
+            prompt_template = find_attack_vector_prompt_modbus
 
     elif prompt_type == "check_attack":
         if protocol == "bt":
