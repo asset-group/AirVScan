@@ -75,7 +75,13 @@ are provide in the innermost folder.
 
 ## Results
 
+**Raw results**
+
 The results for Bluetooth, 5G NR and Giraffe are placed in `results/` folder in `CSV` format.
+
+**Results for Differential Prompt**
+
+Due to space limitations, we report the main findings in the paper and provide additional figures for Differential Prompt in `results/context_impact_diff/` and `results/noise_impact_diff/` folders. The figures in `results/context_impact_diff/` demonstrates the impact of context for both benign and attack test cases with diff prompt, while the figures in `results/noise_impact_diff/` demonstrates the impact of noise for both benign and attack test cases with diff prompt. 
 
 ## Specification Documents
 
