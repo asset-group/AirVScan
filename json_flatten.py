@@ -4,7 +4,7 @@ From: https://github.com/simonw/json-flatten/blob/main/json_flatten.py
 flatten() and unflatten()
 
 A pair of functions that can convert an arbitrary JSON object into a
-flat name/value pair dictionary and back again, preserving type 
+flat name/value pair dictionary and back again, preserving type
 information and handling both nested lists and nested dictionaries.
 
 For example:
@@ -53,7 +53,7 @@ def _object_to_rows(obj, prefix=None):
         if len(obj) == 0:
             rows.append(((prefix or "") + "$emptylist", "[]"))
         for i, item in enumerate(obj):
-            rows.extend(_object_to_rows(item, prefix=dot_prefix + "[{}]".format(i)))
+            rows.extend(_object_to_rows(item, prefix=dot_prefix + f"[{i}]"))
     elif obj is None:
         rows.append(((prefix or "") + "$none", "None"))
     elif isinstance(obj, bool):
@@ -69,7 +69,7 @@ def _object_to_rows(obj, prefix=None):
 
 def flatten(obj):
     if not isinstance(obj, dict):
-        raise TypeError("Expected dict, got {}".format(type(obj)))
+        raise TypeError(f"Expected dict, got {type(obj)}")
     return dict(_object_to_rows(obj))
 
 
@@ -118,10 +118,7 @@ def unflatten(data):
                     )
                 ]
             else:
-                return dict(
-                    (k, replace_integer_keyed_dicts_with_lists(v))
-                    for k, v in obj.items()
-                )
+                return dict((k, replace_integer_keyed_dicts_with_lists(v)) for k, v in obj.items())
         elif isinstance(obj, list):
             return [replace_integer_keyed_dicts_with_lists(v) for v in obj]
         else:

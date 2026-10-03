@@ -9,3 +9,5 @@ nest-asyncio
 pydantic
 pyshark
 python-pcapng
+textual
+requests

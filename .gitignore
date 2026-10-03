@@ -176,6 +176,10 @@ cython_debug/
 .pypirc
 
 captures/
+captures_old/
+captures_new_bak/
+captures_new/
+captures_new_jul21/
 cache/
 logs/
 .vscode/
@@ -190,12 +194,20 @@ wdissector.py
 
 test*.py
 
+asn_files/
+
+
+lightrag/
+sharetechnotes/
+
 llm_res/
 documents/
-captures/
 
 *.sqlite3
+*.db
 *.db-shm
 *.db-wal
+
+backup/
 
 # cSpell:enable

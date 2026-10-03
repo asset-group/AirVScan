@@ -2,10 +2,12 @@ import re
 from concurrent.futures import ThreadPoolExecutor
 from functools import lru_cache
 from traceback import print_exc
-from typing import Literal, Optional, TypedDict, TypeVar
+from typing import Literal, TypedDict, TypeVar
 
 import tiktoken
-from constants import GOOGLE_KEY, OPENAI_KEY, OPENAI_URL
+from constants import GOOGLE_KEY, LLM_API_KEY, LLM_API_URL
+from langchain.schema import AIMessage
+from langchain.schema.runnable import Runnable
 from langchain_core.language_models import BaseChatModel
 from langchain_core.output_parsers import JsonOutputParser
 from langchain_core.prompts import PromptTemplate
@@ -13,7 +15,7 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_openai import ChatOpenAI
 from pydantic import BaseModel, Field
 
-from utils import ae_logger
+from utils import ae_logger, random_string
 
 LLMModel = Literal[
     "gpt-4o-mini",
@@ -26,6 +28,9 @@ LLMModel = Literal[
     "gpt-4o-2024-11-20",
     "gpt-4.1",
     "gemini-2.5-pro-exp-03-25",
+    "gemini-2.5-pro",
+    "grok-4",
+    "o3-2025-04-16",
 ]
 
 
@@ -56,9 +61,8 @@ def get_llm(model: LLMModel, *, max_output_tokens=512, temperature: float = 0.0)
             model=model,
             temperature=temperature,
             max_tokens=max_output_tokens,  # type: ignore
-            base_url=OPENAI_URL,
-            api_key=OPENAI_KEY,
-            # top_p=0.1,
+            base_url=LLM_API_URL or None,
+            api_key=LLM_API_KEY,
         )
     if model.startswith("gemini-2.5-pro"):
         return ChatOpenAI(
@@ -66,8 +70,8 @@ def get_llm(model: LLMModel, *, max_output_tokens=512, temperature: float = 0.0)
             model=model,
             temperature=temperature,
             max_tokens=max_output_tokens,  # type: ignore
-            base_url=OPENAI_URL,
-            api_key=OPENAI_KEY,
+            base_url=LLM_API_URL or None,
+            api_key=LLM_API_KEY,
             top_p=0.1,
         )
     if model == "grok-4":
@@ -76,8 +80,8 @@ def get_llm(model: LLMModel, *, max_output_tokens=512, temperature: float = 0.0)
             model=model,
             temperature=temperature,
             max_tokens=max_output_tokens,  # type: ignore
-            base_url=OPENAI_URL,
-            api_key=OPENAI_KEY,
+            base_url=LLM_API_URL or None,
+            api_key=LLM_API_KEY,
             top_p=0.1,
         )
 
@@ -98,39 +102,19 @@ def get_llm(model: LLMModel, *, max_output_tokens=512, temperature: float = 0.0)
             model=model,
             temperature=temperature,
             max_tokens=max_output_tokens,  # type: ignore
-            base_url=OPENAI_URL,
-            api_key=OPENAI_KEY,
+            base_url=LLM_API_URL or None,
+            api_key=LLM_API_KEY,
             top_p=0.1,
         )
-    elif (
-        model == "gemini-2.5-pro-exp-03-25"
-        or model == "gemini-2.5-pro-preview-05-06"
-        or model == "gemini-2.5-pro-preview-06-05-thinking"
-        or model == "gemini-2.5-pro"
-        or model == "deepseek-r1"
-        or model == "o3-pro"
-        or model == "chatgpt-4o-latest"
-    ):
+    elif model == "deepseek-r1" or model == "o3-pro" or model == "chatgpt-4o-latest":
         return ChatOpenAI(
             timeout=60 * 7,
             model=model,
             temperature=temperature,
             max_tokens=max_output_tokens,  # type: ignore
-            base_url=OPENAI_URL,
-            api_key=OPENAI_KEY,
+            base_url=LLM_API_URL or None,
+            api_key=LLM_API_KEY,
             top_p=0.1,
-            # client_options={"api_endpoint": OPENAI_URL},
-        )
-    elif model == "o3-2025-04-16":
-        return ChatOpenAI(
-            timeout=60 * 7,
-            model=model,
-            temperature=temperature,
-            max_tokens=max_output_tokens,  # type: ignore
-            base_url=OPENAI_URL,
-            api_key=OPENAI_KEY,
-            top_p=0.1,
-            # client_options={"api_endpoint": OPENAI_URL},
         )
     elif "gemini" in model:
         return ChatGoogleGenerativeAI(
@@ -181,7 +165,6 @@ def is_query_beyond_limit(query: str, model: LLMModel):
     encoding = encoding_map[model]
 
     num_token = len(encoding.encode(query))
-    # print(f"Prompt token length: {num_token}")
     is_beyond = model_max_context[model] - num_token < 1000
 
     if is_beyond:
@@ -250,9 +233,6 @@ def simple_query_parallel(
 
 LLMStructuredSchema = TypeVar("LLMStructuredSchema", bound=BaseModel)
 
-from langchain.schema import AIMessage
-from langchain.schema.runnable import Runnable
-
 
 class PreProcessor(Runnable):
     def __init__(self, func):
@@ -290,7 +270,9 @@ def structured_query(
             # Set up a parser + inject instructions into the prompt template.
             parser = JsonOutputParser(pydantic_object=data_schema)
             prompt = PromptTemplate(
-                template="Answer the user query.\n{format_instructions}\n{query}\n",
+                template=random_string(8)  # trick to disable prompt caching
+                + "\n"
+                + "Answer the user query.\n{format_instructions}\n{query}\n",
                 input_variables=["query"],
                 partial_variables={"format_instructions": parser.get_format_instructions()},
             )
@@ -299,9 +281,6 @@ def structured_query(
 
             res = chain.invoke({"query": query})
 
-            # structured_llm = llm.with_structured_output(data_schema)
-            # res = structured_llm.invoke(query)
-            # print(res)
             return res
         except Exception as e:
             print_exc()
@@ -315,7 +294,7 @@ def structured_query(
 class LLMTestCasePkt(BaseModel):
     method: Literal["mutate", "send", "drop"]
     pkt_loc: int
-    send_after: Optional[int]
+    send_after: int | None
 
 
 class LLMTestCase(BaseModel):
@@ -379,5 +358,4 @@ class Stage1Res(BaseModel):
 
 
 if __name__ == "__main__":
-    # structured_query("", "gpt-4o-2024-08-06", TermsRes)
     pass

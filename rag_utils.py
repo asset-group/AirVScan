@@ -1,10 +1,19 @@
-from constants import OPENAI_URL, azpro_kksj_key
+from pathlib import Path
+
+from constants import LLM_API_KEY, LLM_API_URL
 from openai import OpenAI
 from pymilvus import MilvusClient
 
 from utils import Protocol
 
-openai_client = OpenAI(base_url=OPENAI_URL, api_key=azpro_kksj_key)
+BASE_DIR = Path(__file__).resolve().parent
+
+openai_client = OpenAI(
+    base_url=LLM_API_URL or None,
+    api_key=LLM_API_KEY.get_secret_value()
+    if hasattr(LLM_API_KEY, "get_secret_value")
+    else LLM_API_KEY,
+)
 
 
 def emb_text(text):
@@ -32,7 +41,6 @@ class DocSearch:
             limit=num_docs,  # number of returned entities
             anns_field="sparse",
             output_fields=["doc"],  # specifies fields to be returned
-            # search_params=search_params,
         )
 
         res = [i["entity"]["doc"] for i in res[0]]
@@ -41,7 +49,7 @@ class DocSearch:
 
 
 if __name__ == "__main__":
-    doc_search = DocSearch("milvus_demo.db")
+    doc_search = DocSearch(str(BASE_DIR / "milvus_demo.db"))
     count = 0
     for i in doc_search.search("fiveg", "LMP_features_req", 999):
         count += 1

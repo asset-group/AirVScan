@@ -9,9 +9,10 @@ import string
 import subprocess
 import sys
 import xml.etree.ElementTree as ET
-from functools import cache, lru_cache
+from collections.abc import Generator
+from functools import cache
 from io import BytesIO
-from typing import Any, Generator, Literal, TypedDict, overload
+from typing import Any, Literal, TypedDict, overload
 from xml.etree.ElementTree import Element
 
 import pyshark
@@ -19,6 +20,7 @@ import pyshark.packet
 from constants import (
     BT_WD_MODEL_CONFIG,
     BT_WD_SM_CONFIG,
+    EDITCAP_PATH,
     FIVEG_WD_MODEL_CONFIG,
     FIVEG_WD_SM_CONFIG,
     RUN_LOG_PATH,
@@ -30,7 +32,6 @@ from pcapng import FileScanner
 from pcapng.blocks import EnhancedPacket
 from pcapng.exceptions import TruncatedFile
 from pyshark.packet.packet import Packet as PysharkPacket
-from pyshark.packet.packet_summary import PacketSummary as PysharkPacketSummary
 from wdissector import (
     WD_DIR_RX,
     WD_DIR_TX,
@@ -41,12 +42,9 @@ from wdissector import (
     packet_read_field_bitmask_offset,
     packet_read_field_offset,
     packet_read_field_size,
-    packet_summary,
     wd_field,
     wd_packet_dissect,
     wd_packet_show,
-    wd_packet_show_pdml,
-    wd_packet_summary,
     wd_pkt_label,
     wd_read_field,
     wd_register_field,
@@ -57,7 +55,7 @@ from wdissector import (
 from utils_types import Crash, FuzzedPkt, Pkt, ProtocolType
 
 
-@lru_cache(maxsize=None)
+@cache
 def _cached_wd_tool(protocol: ProtocolType, offset: int):
     return WDissectorTool(protocol, offset)
 
@@ -97,7 +95,7 @@ def assign_crash_ids_wdissector(crashes: list[Crash]):
         elif crash.type == "timeout":
             try:
                 crash.identifier = "timeout_" + crash.fuzzed_pkts[-1].state
-            except:
+            except Exception:
                 # Temporary solution for some 5G captures: there is nothing of fuzzed packets
                 # associated with some of crashes
                 crash.identifier = "timeout_"
@@ -132,10 +130,6 @@ def count_mut_dup(exploit_path: str) -> tuple[int, int]:
     return mut_count, dup_count
 
 
-# session_id = random_string(4)
-# ae_logger = get_logger(f"ae_{human_current_date()}_{session_id}")
-
-
 def clean_up_process(proc_name_keyword: str, sig=signal.SIGKILL):
     """
     Helper function to kill processes whose name contains given keyword.
@@ -167,9 +161,9 @@ def clean_up_process(proc_name_keyword: str, sig=signal.SIGKILL):
         for pid in pids:
             try:
                 os.kill(pid, sig)
-            except:
+            except Exception:
                 pass
-    except:
+    except Exception:
         pass
 
 
@@ -393,7 +387,6 @@ def is_same_backtrace(bt1, bt2, threshold: int, first_hex_mismatch_thresh: int =
     # The first difference may vary even in the case of same backtrace
     differences.pop(0)
 
-    # return max(differences) <= threshold and sum(differences) / len(differences) <= 200
     return max(differences) <= threshold and max(differences) == min(differences)
 
 
@@ -732,7 +725,7 @@ class WDissectorTool:
                 direction = WD_DIR_TX if pkt[3] == 0 else WD_DIR_RX
             elif self.protocol == "fiveg":
                 direction = WD_DIR_TX if pkt[49] == 1 else WD_DIR_RX
-        except:
+        except Exception:
             pass
 
         return direction
@@ -763,11 +756,9 @@ class WDissectorTool:
         wd_set_packet_direction(self.wd, direction)
         wd_packet_dissect(self.wd, pkt, len(pkt))
         # 3) Run State Mapper
-        transition_ok = self.StateMachine.RunStateMapper(
+        self.StateMachine.RunStateMapper(
             self.wd, direction == WD_DIR_TX
         )  # 2nd argument force transition to TX state, so we just need to validate RX
-        # print(wd_packet_show(self.wd))
-        # input()
         return self.StateMachine.GetCurrentStateName()
 
     def label_pkt(self, pkt: bytes, pkt_decoding_offset: int = 4):
@@ -801,7 +792,6 @@ class WDissectorTool:
         if PktLabel.label_status is True:
             return f"{PktLabel.pkt_field_name} == {PktLabel.pkt_field_value}"
         else:
-            # logger.warning(f"Cannot label packet {pkt}")
             return None
 
     def field_offset_bitmask(self, pkt: bytes, field_name: str) -> tuple[int, int, int]:
@@ -856,7 +846,6 @@ class WDissectorTool:
         wd_set_packet_direction(self.wd, direction)
         wd_packet_dissect(self.wd, pkt, len(pkt))
 
-        # print(wd_packet_summary(self.wd))
         print(wd_packet_show(self.wd))
 
     def test_func(self, pkt: bytes):
@@ -953,24 +942,17 @@ def discover_crashes_wdissector(
         List of crashes inside the capture file
     """
     wd_tool = WDissectorTool(protocol, decoding_offset)
-    # logger.info("Start capture crashes discovery...")
     # Cache logic, hack method, see comments above
     crashes: list[Crash] = []
     fuzzed_pkts: list[FuzzedPkt] = []
     pkts: list[Pkt] = []
-    prev_pkt_bytes: bytes
+    prev_pkt_bytes: bytes = b""
     crash_idx = 0
     current_iteration = 1  # iteration starts from 1
     for pkt_summary, pyshark_pkt, pkt in packet_dissection_reader(capture_path, True, True, True):
-        # zip(
-        #     pcap_pkt_reader(capture_path),
-        #     packet_summary_reader(capture_path, only_summaries=True),
-        #     packet_summary_reader(capture_path, only_summaries=False, use_json=True),
-        # ):
         pkt_comment = pkt.options.get("opt_comment")
         # mutated packet
         if "Fuzzed from previous" in pkt_comment:
-            # field_name = packet_mutated_field(prev_packet_bytes, packet.packet_data) # KEEP
             fuzzed_pkts.append(
                 FuzzedPkt(
                     pkt_bytes=pkt.packet_data,
@@ -1034,7 +1016,7 @@ def discover_crashes_wdissector(
         elif b"Iteration" in pkt.packet_data:
             current_iteration += 1
 
-        # Store all packets
+        # Store all packets, for llmbugcatcher
         if (not is_packet_logger(pkt.packet_data[decoding_offset:])) and pkt_summary[
             "Protocol"
         ] != "PKTLOG":
@@ -1051,8 +1033,6 @@ def discover_crashes_wdissector(
                 pkt_bytes=pkt.packet_data,
                 loc=int(pkt_summary["No."]),
                 iteration=current_iteration,
-                # state=wd_tool.pkt_state(pkt.packet_data, decoding_offset),
-                # filter=wd_tool.label_pkt(pkt.packet_data, decoding_offset),
                 state=None,  # To be filled when storing crash
                 filter=None,
                 info=pkt_summary["Info"],
@@ -1098,11 +1078,14 @@ class PDMLPacketReader:
 
     def __init__(self, capture_path: str) -> None:
         self.capture_path = capture_path
+        try:
+            pdml = subprocess.check_output(
+                [TSHARK_PATH, "-CWDissector", "-Tpdml", f"-r{self.capture_path}"],
+                cwd="/home/wireless-deep-fuzzer",
+            )
+        except Exception as e:
+            pdml = e.output
 
-        pdml = subprocess.check_output(
-            [TSHARK_PATH, "-CWDissector", "-Tpdml", f"-r{self.capture_path}"],
-            cwd="/home/wireless-deep-fuzzer",
-        )
         self.tree = ET.parse(BytesIO(pdml))
 
     def read_field(self, field: Element):
@@ -1145,23 +1128,10 @@ class PDMLPacketReader:
         for packet in self.tree.findall("./packet"):
             fields = {}
             for proto in packet.findall("./"):
-                # if proto.attrib["name"] in ["frame", "eth", "ip", "udp"]:
-                # continue
-                pkt_num = 0
-                if proto.attrib["name"] == "geninfo":
-                    for field in proto.findall("./field"):
-                        if field.attrib["name"] == "num":
-                            pkt_num = int(field.attrib["show"])
-                            break
-                else:
+                if proto.attrib["name"] != "geninfo":
                     fields[proto.attrib["name"]] = self.read_proto(proto)
 
-                # res[proto.attrib["name"]] = read_proto(proto)
-
             yield fields
-            # print(res)
-            # print(fields)
-            # input()
 
 
 PacketSummary = TypedDict(
@@ -1176,6 +1146,19 @@ PacketSummary = TypedDict(
         "Info": str,
     },
 )
+
+
+def fix_pcap(capture_path: str):
+    # Fix truncated captures **in-place**. Keep the original capture format (pcap/pcapng)
+    if not os.path.exists(capture_path):
+        print(f"File {capture_path} not found.")
+        return
+
+    capture_format = os.path.splitext(capture_path)[1].removeprefix(".")
+    if capture_format not in ["pcap", "pcapng"]:
+        print(f"Unknown capture_format: {capture_format}")
+
+    subprocess.run(f"{EDITCAP_PATH} -F {capture_format} {capture_path} {capture_path}", shell=True)
 
 
 @overload
@@ -1251,15 +1234,6 @@ def packet_dissection_reader(
         info_fields_reader = (i._fields for i in info_reader)
         readers.append(info_fields_reader)
     if include_detailed_dissection:
-        # detail_reader = pyshark.FileCapture(
-        #     capture_path,
-        #     tshark_path=TSHARK_PATH,
-        #     only_summaries=False,
-        #     keep_packets=False,
-        #     # use_json=True,
-        #     use_ek=False,
-        #     custom_parameters=tshark_params,
-        # )
         pdml_reader = PDMLPacketReader(capture_path)
         readers.append(pdml_reader.read())
     if include_raw:
@@ -1273,30 +1247,15 @@ def get_packet_direction(pkt_bytes: bytes, protocol: ProtocolType):
     # TX: central send
     # RX: device send
     if protocol == "bt":
-        return pkt.info[:2]
+        return "TX" if len(pkt_bytes) > 0 and pkt_bytes[0] == 0 else "RX"
     else:
         # 5G
-        return "TX" if pkt_bytes[50] == 1 else "RX"
+        return "TX" if len(pkt_bytes) > 50 and pkt_bytes[50] == 1 else "RX"
 
 
 if __name__ == "__main__":
-    # for i in packet_dissection_reader(
-    #     "captures/esp32_bt/capture_bluetooth.pcapng", True, True, True
-    # ):
-    #     print(1)
-
-    # fuzzed_pkts = [
-    #     {"type": "dup", "filter": "xx", "data": [12, 45]},
-    #     {"type": "mut", "filter": "xxy", "mutations": [(4, "0xd2")]},
-    # ]
-    # print(gen_universal_exploit_script(fuzzed_pkts))
-    # crash1 = "|Guru Meditation Error: Core  1 panic'ed (StoreProhibited). Exception was unhandled.|Backtrace:0x4000c2a0:0x3ffc78300x400de36b:0x3ffc7840 0x400fca3e:0x3ffc7860 0x400fd6fa:0x3ffc7880 0x400fdac1:0x3ffc78a0 0x400fe37a:0x3ffc78c0 0x400fe412:0x3ffc78f0 0x400fe466:0x3ffc7910 0x400fe8b6:0x3ffc7930 0x400de770:0x3ffc7950 0x400e209a:0x3ffc7e20 0x400e111d:0x3ffc7e50 0x400e1501:0x3ffc7eb0 0x400dde5b:0x3ffc7f20 0x400ddfcf:0x3ffc7f50 0x400de0c3:0x3ffc7f70 0x4008b589:0x3ffc7fa0"
-    # crash2 = "|Guru Meditation Error: Core  1 panic'ed (StoreProhibited). Exception was unhandled.|Backtrace:0x4000c2b7:0x3ffd1c400x400de36b:0x3ffd1c50 0x400fca3e:0x3ffd1c70 0x400fd6fa:0x3ffd1c90 0x400fdac1:0x3ffd1cb0 0x400fe37a:0x3ffd1cd0 0x400fe412:0x3ffd1d00 0x400fe466:0x3ffd1d20 0x400fe8b6:0x3ffd1d40 0x400de770:0x3ffd1d60 0x400e209a:0x3ffd2230 0x400e111d:0x3ffd2260 0x400e1501:0x3ffd22c0 0x400dde5b:0x3ffd2330 0x400ddfcf:0x3ffd2360 0x400de0c3:0x3ffd2380 0x4008b589:0x3ffd23b0"
-    # print(is_same_crash(crash1, crash2, 50000))
-    # print(is_same_crash(crash1, crash2, 2000))
-
     for (eh_pkt,) in packet_dissection_reader(
-        "captures/esp32-bt/dup/t1/capture_bluetooth_no_original.pcapng",
+        "/home/wireless-deep-fuzzer/modules/llmbugcatcher/captures/esp32-bt/dup/t1/capture_bluetooth_no_original.pcapng",
         include_info=False,
         include_detailed_dissection=False,
         include_raw=True,

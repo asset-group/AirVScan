@@ -1,20 +1,18 @@
-import json
 import os
 import sqlite3
 import threading
-import time
 import traceback
 from concurrent.futures import ThreadPoolExecutor
 
 import nest_asyncio
 
-from llm_utils import LLMModel, Stage1Res, count_token, structured_query
-from my_prompts import get_guidance_prompt
-from my_prompts_check_attack import CheckAttackRes
-from utils import WDissectorTool, calc_file_sha256, packet_dissection_reader
-from utils_types import PcapPromptMode, Pkt, ProtocolType
+from llm_utils import Stage1Res, count_token, structured_query
+from prompts.my_prompts_check_attack import CheckAttackRes
+from utils import calc_file_sha256
 
 nest_asyncio.apply()
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
 def exceed_token_limit(prompt, llm_model):
@@ -28,7 +26,7 @@ def exceed_token_limit(prompt, llm_model):
     completion_length = 10000
     buffer = 1000
 
-    return completion_length + count + buffer >= max_token_by_model[llm_model]
+    return completion_length + count + buffer >= max_token_by_model.get(llm_model, 200 * 1000)
 
 
 class RunHelper:
@@ -54,7 +52,10 @@ class RunHelper:
         self.num_thread = num_thread
         self.exp_id = exp_id
 
-        self.captures_folder = f"captures/{device}-{protocol}/{case_type}/{n_field}"
+        parts = [f"{device}-{protocol}", case_type]
+        if n_field:
+            parts.append(n_field)
+        self.captures_folder = os.path.join(BASE_DIR, "captures", *parts)
 
         self.db = sqlite3.connect(db_path, check_same_thread=False)
         self.read_cursor = self.db.cursor()
@@ -122,7 +123,6 @@ class RunHelper:
         if has_res:
             print(f"Skip {prompt_path}...")
             return
-            self.save_res(prompt_path, model, prompt, prompt_hash, trial_idx, res_ref_id, None)
 
         if exceed_token_limit(prompt, model):
             print(f"Prompt exceed model {model} context window.")
@@ -161,7 +161,6 @@ class RunHelper:
 
                 prompt_path = os.path.join(root, file)
                 prompt_type, noise_type = root.split("/")[-2:]
-                pcap_mode = file.split(".")[0]
 
                 if prompt_type == "root_cause" and self.case_type == "benign":
                     # benign ones no need do root cause prompt
@@ -188,19 +187,27 @@ class RunHelper:
 
         try:
             self.db.close()
-        except:
+        except Exception:
             traceback.print_exc()
 
 
 if __name__ == "__main__":
     num_trial = 5
-    num_thread = 20
+    num_thread = 6
     db_path = "llm_res_final.sqlite3"
     exp_id = "final"
 
-    models = ["grok-4", "gemini-2.5-pro", "o3-2025-04-16"]
+    models = ["o3-2025-04-16", "grok-4", "gemini-2.5-pro"]
 
-    # fmt: off
-    # cypress-bt
-    run_helper = RunHelper(db_path, "cypress", "bt", "mut", "1-field", models, num_trial=num_trial, num_thread=num_thread, exp_id=exp_id)
+    run_helper = RunHelper(
+        db_path,
+        "oneplus",
+        "fiveg",
+        "5guest",
+        "rrc",
+        models,
+        num_trial=num_trial,
+        num_thread=num_thread,
+        exp_id=exp_id,
+    )
     run_helper.run()

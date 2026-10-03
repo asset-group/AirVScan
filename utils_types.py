@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Any, Generator, Literal, TypedDict, overload
+from typing import Literal
 
 BoardType = Literal["esp32", "cypress", "oneplus"]
 ProtocolType = Literal["fiveg", "bt", "wifi"]
@@ -75,5 +75,6 @@ class Pkt:
     filter: str | None
     info: str
     fields: dict
+
 
 PromptType = Literal["root_cause", "check_attack"]
